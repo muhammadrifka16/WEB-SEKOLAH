@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SMPN3 Garut">
+<meta name="theme-color" content="#0b1f3a">
+<meta name="description" content="SMP Negeri 3 Garut — Sistem Informasi Sekolah Premium 2025">
+<title>SMP Negeri 3 Garut — Sistem Informasi Premium</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+<link rel="stylesheet" href="style.css">
+
+</head>
+<body>
+
+<!-- ══ SPLASH SCREEN ══ -->
+<div id="splashScreen" aria-hidden="true">
+  <div class="splash-logo">N3</div>
+  <div class="splash-title">SMP Negeri 3 Garut</div>
+  <div class="splash-sub">Sistem Informasi Sekolah · 2025</div>
+  <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+</div>
+
+<!-- ══ TOAST WRAPPER ══ -->
+<div id="toast-wrap" role="status" aria-live="polite"></div>
+
+<!-- ══ QR SUCCESS OVERLAY ══ -->
+<div class="qr-success-overlay" id="qrSuccessOverlay" role="alert" aria-live="assertive">
+  <div class="qr-success-icon" aria-hidden="true">✅</div>
+  <div class="qr-success-title">Absensi Berhasil!</div>
+  <div class="qr-success-name" id="qrSuccessName">—</div>
+  <div class="qr-success-sub" id="qrSuccessSub">—</div>
+</div>
+
+<!-- ══ SIDEBAR OVERLAY (mobile) ══ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()" role="button" aria-label="Tutup menu"></div>
+
+<!-- ══ CONFIRM DIALOG ══ -->
+<div class="dialog-overlay" id="dialogOverlay" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+  <div class="dialog-box">
+    <div class="dialog-icon" id="dialogIcon" aria-hidden="true">⚠️</div>
+    <div class="dialog-title" id="dialogTitle">Konfirmasi</div>
+    <div class="dialog-msg" id="dialogMsg">Yakin?</div>
+    <div class="dialog-btns">
+      <button class="btn-action btn-outline" onclick="dialogCancel()" type="button">Batal</button>
+      <button class="btn-action btn-navy" id="dialogOk" type="button">Ya, Lanjutkan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+         LOGIN PAGE
+═══════════════════════════════════ -->
+<div class="auth-page" id="page-login" role="main">
+  <div class="auth-bg" aria-hidden="true"></div>
+  <div class="auth-grid-bg" aria-hidden="true"></div>
+
+  <div class="auth-card">
+    <!-- Logo & Header -->
+    <div class="auth-logo" aria-hidden="true">N3</div>
+    <h1 class="auth-title">Masuk ke Sistem</h1>
+    <p class="auth-sub">SMP Negeri 3 Garut — Sistem Informasi Sekolah</p>
+
+    <!-- Demo Accounts -->
+    <div style="background:var(--gold-dim);border:1px dashed rgba(201,149,42,.3);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:11px;color:var(--amber-text)">
+      <div style="font-weight:700;margin-bottom:4px">💡 Demo Akun:</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <button onclick="fillLogin('admin','Admin@2025!')" style="background:var(--navy);color:var(--gold-light);border:none;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">🔐 Admin</button>
+        <button onclick="fillLogin('pak.budi','Guru@2025!')" style="background:var(--navy);color:var(--gold-light);border:none;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">👨‍🏫 Guru</button>
+        <button onclick="fillLogin('wahyu.s','Murid@2025!')" style="background:var(--navy);color:var(--gold-light);border:none;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif">🎓 Murid</button>
+      </div>
+    </div>
+
+    <!-- Lockout Banner -->
+    <div class="lockout-banner" id="lockoutBanner" role="alert">
+      <span aria-hidden="true">🔒</span>
+      <span id="lockoutMsg">Akun terkunci.</span>
+    </div>
+
+    <!-- Username -->
+    <div class="form-group">
+      <label class="form-label" for="loginUsername">
+        Username<span class="required" aria-hidden="true">*</span>
+      </label>
+      <input
+        type="text"
+        class="form-input"
+        id="loginUsername"
+        name="username"
+        placeholder="Masukkan username"
+        autocomplete="username"
+        autocapitalize="none"
+        autocorrect="off"
+        spellcheck="false"
+        inputmode="text"
+        oninput="clearFieldError(this)"
+        onkeydown="loginOnEnter(event)"
+        aria-describedby="loginUsernameErr"
+        aria-required="true"
+      >
+      <div class="form-error" id="loginUsernameErr" role="alert"></div>
+    </div>
+
+    <!-- Password -->
+    <div class="form-group">
+      <label class="form-label" for="loginPassword">
+        Password<span class="required" aria-hidden="true">*</span>
+      </label>
+      <div class="input-wrap">
+        <input
+          type="password"
+          class="form-input"
+          id="loginPassword"
+          name="password"
+          placeholder="Masukkan password"
+          autocomplete="current-password"
+          oninput="clearFieldError(this)"
+          onkeydown="loginOnEnter(event)"
+          aria-describedby="loginPasswordErr"
+          aria-required="true"
+        >
+        <button class="input-toggle" onclick="togglePwd('loginPassword',this)" type="button" aria-label="Tampilkan password">👁</button>
+      </div>
+      <div class="form-error" id="loginPasswordErr" role="alert"></div>
+    </div>
+
+    <!-- Remember Me -->
+    <label class="checkbox-row">
+      <input type="checkbox" id="rememberMe" name="rememberMe">
+      Ingat saya selama 7 hari
+    </label>
+
+    <!-- Submit -->
+    <button class="btn-submit" id="btnLogin" onclick="handleLogin()" type="button" aria-label="Login">
+      <span class="btn-text">🔐 Masuk</span>
+      <div class="spinner" aria-hidden="true"></div>
+    </button>
+
+    <!-- Switch to Register -->
+    <p class="auth-switch">
+      Belum punya akun? <a onclick="showPage('register')" role="button" tabindex="0">Daftar di sini</a>
+    </p>
+    <p class="auth-switch" style="margin-top:8px">
+      <a onclick="showForgotInfo()" style="color:var(--muted);font-weight:500" role="button" tabindex="0">Lupa password?</a>
+    </p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════
+         REGISTER PAGE
+═══════════════════════════════════ -->
+<div class="auth-page" id="page-register" role="main">
+  <div class="auth-bg" aria-hidden="true"></div>
+  <div class="auth-grid-bg" aria-hidden="true"></div>
+
+  <div class="auth-card" style="max-width:500px">
+    <!-- Logo & Header -->
+    <div class="auth-logo" aria-hidden="true">N3</div>
+    <h1 class="auth-title">Buat Akun Baru</h1>
+    <p class="auth-sub">SMP Negeri 3 Garut — Daftar sebagai anggota sistem</p>
+
+    <!-- Role Toggle -->
+    <div class="form-group">
+      <label class="form-label">
+        Peran<span class="required" aria-hidden="true">*</span>
+      </label>
+      <div class="role-toggle" role="group" aria-label="Pilih peran">
+        <button
+          class="role-btn active"
+          id="regRoleGuru"
+          onclick="switchRegRole('guru')"
+          type="button"
+          aria-pressed="true"
+        >👨‍🏫 Guru</button>
+        <button
+          class="role-btn"
+          id="regRoleMurid"
+          onclick="switchRegRole('murid')"
+          type="button"
+          aria-pressed="false"
+        >🎓 Murid</button>
+      </div>
+    </div>
+
+    <!-- Name & NIP/NIS -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="regName">
+          Nama Lengkap<span class="required" aria-hidden="true">*</span>
+        </label>
+        <input
+          type="text"
+          class="form-input"
+          id="regName"
+          name="name"
+          placeholder="Nama lengkap"
+          autocomplete="name"
+          autocapitalize="words"
+          oninput="clearFieldError(this)"
+          aria-required="true"
+        >
+        <div class="form-error" id="regNameErr" role="alert"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" id="regNipNisLabel" for="regNipNis">
+          NIP Guru<span class="required" aria-hidden="true">*</span>
+        </label>
+        <input
+          type="text"
+          class="form-input"
+          id="regNipNis"
+          name="nipnis"
+          placeholder="Nomor identitas"
+          inputmode="text"
+          oninput="clearFieldError(this)"
+        >
+        <div class="form-error" id="regNipNisErr" role="alert"></div>
+      </div>
+    </div>
+
+    <!-- Username & Kelas -->
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="regUsername">
+          Username<span class="required" aria-hidden="true">*</span>
+        </label>
+        <input
+          type="text"
+          class="form-input"
+          id="regUsername"
+          name="username"
+          placeholder="min. 5 karakter"
+          oninput="validateUsername()"
+          autocomplete="username"
+          autocapitalize="none"
+          autocorrect="off"
+          spellcheck="false"
+          aria-describedby="regUsernameErr"
+          aria-required="true"
+        >
+        <div class="form-error" id="regUsernameErr" role="alert"></div>
+      </div>
+
+      <!-- Kelas (murid only) -->
+      <div class="form-group" id="regKelasGroup" style="display:none">
+        <label class="form-label" for="regKelas">
+          Kelas<span class="required" aria-hidden="true">*</span>
+        </label>
+        <select class="select-input" id="regKelas" name="kelas" aria-required="true">
+          <option value="">Pilih kelas...</option>
+          <optgroup label="Kelas 7">
+            <option value="7A">7A</option>
+            <option value="7B">7B</option>
+            <option value="7C">7C</option>
+          </optgroup>
+          <optgroup label="Kelas 8">
+            <option value="8A">8A</option>
+            <option value="8B">8B</option>
+            <option value="8C">8C</option>
+          </optgroup>
+          <optgroup label="Kelas 9">
+            <option value="9A">9A</option>
+            <option value="9B">9B</option>
+            <option value="9C">9C</option>
+          </optgroup>
+        </select>
+        <div class="form-error" id="regKelasErr" role="alert"></div>
+      </div>
+    </div>
+
+    <!-- Kode Guru (guru only) -->
+    <div class="form-group" id="regSecretGroup">
+      <label class="form-label" for="regSecret">
+        Kode Guru<span class="required" aria-hidden="true">*</span>
+      </label>
+      <div class="input-wrap">
+        <input
+          type="password"
+          class="form-input"
+          id="regSecret"
+          name="secret"
+          placeholder="Kode khusus guru"
+          oninput="clearFieldError(this)"
+          autocomplete="off"
+          aria-describedby="regSecretHint"
+        >
+        <button class="input-toggle" onclick="togglePwd('regSecret',this)" type="button" aria-label="Tampilkan kode guru">👁</button>
+      </div>
+      <div class="form-error" id="regSecretErr" role="alert"></div>
+      <div class="secret-hint" id="regSecretHint">
+        Kode dari administrator. Hint: <code>SMPN3GARUT2025</code>
+      </div>
+    </div>
+
+    <!-- Password -->
+    <div class="form-group">
+      <label class="form-label" for="regPassword">
+        Password<span class="required" aria-hidden="true">*</span>
+      </label>
+      <div class="input-wrap">
+        <input
+          type="password"
+          class="form-input"
+          id="regPassword"
+          name="password"
+          placeholder="min 8 karakter"
+          oninput="checkStrength()"
+          autocomplete="new-password"
+          aria-describedby="regPasswordStrength regPasswordErr"
+          aria-required="true"
+        >
+        <button class="input-toggle" onclick="togglePwd('regPassword',this)" type="button" aria-label="Tampilkan password">👁</button>
+      </div>
+      <div class="strength-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Kekuatan password">
+        <div class="strength-fill" id="strengthFill"></div>
+      </div>
+      <div class="strength-label" id="strengthLabel" id="regPasswordStrength" style="color:var(--muted)">
+        Masukkan password
+      </div>
+      <div class="form-error" id="regPasswordErr" role="alert"></div>
+    </div>
+
+    <!-- Confirm Password -->
+    <div class="form-group">
+      <label class="form-label" for="regConfirm">
+        Konfirmasi Password<span class="required" aria-hidden="true">*</span>
+      </label>
+      <div class="input-wrap">
+        <input
+          type="password"
+          class="form-input"
+          id="regConfirm"
+          name="confirm"
+          placeholder="Ulangi password"
+          oninput="checkConfirm()"
+          autocomplete="new-password"
+          aria-describedby="regConfirmErr"
+          aria-required="true"
+        >
+        <button class="input-toggle" onclick="togglePwd('regConfirm',this)" type="button" aria-label="Tampilkan konfirmasi password">👁</button>
+      </div>
+      <div class="form-error" id="regConfirmErr" role="alert"></div>
+    </div>
+
+    <!-- Agree Terms -->
+    <label class="checkbox-row">
+      <input type="checkbox" id="agreeTerms" name="agreeTerms">
+      Saya setuju dengan <a href="#" onclick="return false;" aria-label="Baca ketentuan penggunaan">ketentuan penggunaan</a> sistem
+    </label>
+
+    <!-- Submit -->
+    <button class="btn-submit" id="btnRegister" onclick="handleRegister()" type="button" aria-label="Daftarkan akun">
+      <span class="btn-text">✅ Daftarkan Akun</span>
+      <div class="spinner" aria-hidden="true"></div>
+    </button>
+
+    <!-- Switch to Login -->
+    <p class="auth-switch">
+      Sudah punya akun? <a onclick="showPage('login')" role="button" tabindex="0">Masuk di sini</a>
+    </p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════
+         DASHBOARD APP
+═══════════════════════════════════ -->
+<div id="page-app" role="application" aria-label="Sistem Informasi SMPN 3 Garut">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar" id="sidebarEl" aria-label="Menu navigasi">
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <div class="sidebar-emblem">
+        <div class="sidebar-em-icon" aria-hidden="true">N3</div>
+        <div class="sidebar-em-text">
+          <div class="t1">SMP Negeri 3 Garut</div>
+          <div class="t2">SIS · 2025</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User Info -->
+    <div class="sidebar-user">
+      <div class="sidebar-avatar" id="sidebarAvatar" aria-hidden="true">?</div>
+      <div class="sidebar-user-info">
+        <div class="name" id="sidebarName">—</div>
+        <div class="role-badge" id="sidebarRole">—</div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sidebar-nav" id="sidebarNav" aria-label="Menu utama"></nav>
+
+    <!-- Footer Logout -->
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="handleLogout()" type="button" aria-label="Keluar dari sistem">
+        🚪 <span>Keluar dari Sistem</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── MAIN AREA ── -->
+  <div class="main" role="main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <!-- Hamburger (mobile) -->
+      <button
+        class="hamburger"
+        id="hamburgerBtn"
+        onclick="toggleSidebar()"
+        type="button"
+        aria-label="Buka menu"
+        aria-expanded="false"
+        aria-controls="sidebarEl"
+      >
+        <span></span>
+      </button>
+
+      <!-- Title -->
+      <h1 class="topbar-title" id="topbarTitle">Dashboard</h1>
+
+      <!-- Right Controls -->
+      <div class="topbar-right">
+        <!-- Clock (desktop) -->
+        <div class="topbar-time" id="topbarTime" aria-live="off"></div>
+
+        <!-- Notification Bell -->
+        <button
+          class="notif-btn"
+          id="notifBtn"
+          onclick="showNotifToast()"
+          type="button"
+          title="Notifikasi absensi"
+          aria-label="Notifikasi"
+        >
+          🔔
+          <span class="notif-count" id="notifCount" aria-label="jumlah notifikasi">0</span>
+        </button>
+
+        <!-- Session Status -->
+        <div class="topbar-session" role="status" aria-live="off">
+          <div class="session-dot" aria-hidden="true"></div>
+          <span id="sessionInfo">Sesi aktif</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="content" id="mainContent" tabindex="-1">
+      <!-- Rendered dynamically by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCROLL TO TOP ══ -->
+<button id="scrollTopBtn" onclick="document.querySelector('.content')?.scrollTo({top:0,behavior:'smooth'})" aria-label="Scroll ke atas">↑</button>
+
+<!-- ══ SCRIPTS ══ -->
+<script src="script.js"></script>
+
+</body>
+</html>
